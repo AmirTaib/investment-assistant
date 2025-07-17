@@ -1,33 +1,13 @@
-# Investment Assistant 🚀
+# Investment Assistant
 
-This project is the foundation of your GCP-based investment automation system.
+This project is a minimal end-to-end proof-of-concept for an investment assistant app.
 
-## 🔧 Stack
-- Python 3.10
-- Flask
-- Cloud Run
-- Firebase Admin SDK
-- Google Sheets API
+## Structure
 
-## 📁 Structure
+- `backend/`: FastAPI service that saves a simple value to Firestore
+- `frontend/`: React app that reads and displays values from Firestore
 
-- `app.py` – Entry point Flask app
-- `Dockerfile` – Container setup for GCP Cloud Run
-- `requirements.txt` – Python dependencies
-- `.env.example` – Example environment configuration
+## Deployment Steps
 
-## 🚀 Deploy to Cloud Run
-1. Enable Cloud Run, Secret Manager, IAM, Sheets API, and Firebase in GCP
-2. Build & deploy:
-    ```bash
-    gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/investment-assistant
-    gcloud run deploy investment-assistant --image gcr.io/YOUR_PROJECT_ID/investment-assistant --platform managed --region us-central1 --allow-unauthenticated
-    ```
-
-## 🔐 Environment
-Make sure to create a `.env` file (or use Secret Manager) with:
-- Firebase credentials
-- Google Sheets credentials
-
-## 📌 Repo
-GitHub: https://github.com/AmirTaib/investment-assistant
+1. Deploy backend to Google Cloud Run
+2. Deploy frontend to Firebase Hosting
