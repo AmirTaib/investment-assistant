@@ -1,0 +1,1 @@
+SCHEDULE_HOURS = [8, 12, 16]
