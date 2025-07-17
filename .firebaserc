@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "investment-advisor-bot-2025",
+    "investment-advisor-bot": "investment-advisor-bot-2025"
+  },
+  "targets": {},
+  "etags": {}
+}
