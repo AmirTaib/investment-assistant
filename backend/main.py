@@ -1,13 +1,8 @@
-from fastapi import FastAPI
-from firestore import write_hello_message
+from flask import Flask
+from routes.insight_runner import insight_bp
 
-app = FastAPI()
+app = Flask(__name__)
+app.register_blueprint(insight_bp)
 
-@app.get("/")
-def root():
-    return {"status": "OK"}
-
-@app.post("/run")
-def run_job():
-    write_hello_message()
-    return {"status": "written"}
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)
