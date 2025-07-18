@@ -59,13 +59,21 @@ Generate a comprehensive daily investment insight for {date} with the following 
 - How it affects your investments
 
 2. SPECIFIC RECOMMENDATIONS (Investment Recommendations):
+Provide exactly 5 HIGH-QUALITY, UNIQUE investment opportunities that are:
+- Based on RARE opportunities that emerged TODAY due to specific events or changes
+- Only recommend if you are 90%+ confident it will help make significant money
+- Focus on UNIQUE situations, not generic market movements
+- Based on FACTS only, no speculation
+- Each recommendation should be actionable and specific
+
 For each position provide:
 - Action: Buy/Sell/Hold
 - Amount to invest/exit (in ILS and portfolio percentages)
 - Current value - Buy price - Stop - Sell target
-- Detailed reasoning
+- Detailed reasoning based on FACTS
 - Timeframe
 - Existing risks and why this recommendation is still valid
+- Specific event or catalyst that created this opportunity
 
 3. SECTOR ANALYSIS (Sector Analysis):
 - What action is required based on the analysis
@@ -114,11 +122,12 @@ Return the result as a valid JSON with the following ENHANCED structure:
             "target_price": "850",
             "stop_loss": "700",
             "confidence": "High/Medium/Low",
-            "reason": "Detailed reasoning why to buy/sell",
+            "reason": "Detailed reasoning based on FACTS why to buy/sell",
             "timeframe": "1-2 weeks / 3-6 months",
             "risks": "What are the risks",
             "why_despite_risks": "Why this recommendation is still valid",
-            "type": "Short term/Long term"
+            "type": "Short term/Long term",
+            "catalyst": "Specific event or catalyst that created this opportunity"
         }}
     ],
     "sector_analysis": [
@@ -142,7 +151,6 @@ Return the result as a valid JSON with the following ENHANCED structure:
             "priority": "High/Medium/Low",
             "action_required": "What action is required",
             "urgency": "Urgent/Medium/Not urgent",
-            "difference_from_recommendations": "How it differs from regular recommendations",
             "immediate_action": "Sell immediately something you hold / Buy immediately something you don't have"
         }}
     ],
@@ -151,12 +159,16 @@ Return the result as a valid JSON with the following ENHANCED structure:
         "risk_type": "General portfolio risk management / For that day",
         "explanation": "Friendly and simple explanation",
         "immediate_actions": ["Action 1 you need to take now", "Action 2"],
-        "stop_loss_levels": ["Stop level 1", "Stop level 2"],
+        "stop_loss_levels": ["NVDA: 700", "TSLA: 110"],
         "hedging_strategies": ["Hedging strategy 1", "Hedging strategy 2"]
     }}
 }}
 
-IMPORTANT REQUIREMENTS:
+CRITICAL REQUIREMENTS:
+- Provide exactly 5 HIGH-QUALITY, UNIQUE investment recommendations
+- Only recommend if you are 90%+ confident it will help make significant money
+- Focus on RARE opportunities that emerged TODAY due to specific events
+- Base ALL recommendations on FACTS only, no speculation or made-up data
 - All values in the JSON should be in Hebrew (except JSON keys)
 - Provide specific amounts in ILS for each recommendation
 - Focus on market-beating opportunities, not generic advice
@@ -167,4 +179,6 @@ IMPORTANT REQUIREMENTS:
 - Always explain why the recommendation is important and what the risks are
 - Return only valid JSON without additional text
 - Ensure all Hebrew text is properly encoded and doesn't break JSON structure
+- Stop-loss levels must include stock symbol (e.g., "NVDA: 700")
+- Each recommendation must have a specific catalyst or event that created the opportunity
 """ 

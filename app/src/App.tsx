@@ -32,6 +32,7 @@ interface Recommendation {
   risks: string;
   why_despite_risks: string;
   type: 'קצר טווח' | 'ארוך טווח';
+  catalyst: string;
 }
 
 interface SectorAnalysis {
@@ -53,7 +54,6 @@ interface Alert {
   priority: 'גבוה' | 'בינוני' | 'נמוך';
   action_required: string;
   urgency: 'דחוף' | 'בינוני' | 'לא דחוף';
-  difference_from_recommendations: string;
   immediate_action: string;
 }
 
@@ -200,6 +200,14 @@ function App(): JSX.Element {
       </div>
       <div style={{ 
         fontSize: '14px', 
+        color: '#9b59b6', 
+        marginTop: '5px',
+        fontWeight: '500'
+      }}>
+        <strong>זרז/אירוע:</strong> {rec.catalyst}
+      </div>
+      <div style={{ 
+        fontSize: '14px', 
         color: '#7f8c8d', 
         marginTop: '10px',
         fontWeight: '500'
@@ -276,9 +284,6 @@ function App(): JSX.Element {
       </div>
       <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#f39c12', marginBottom: '10px' }}>
         <strong>פעולה מיידית:</strong> {alert.immediate_action}
-      </div>
-      <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#3498db' }}>
-        <strong>הבדל מהמלצות:</strong> {alert.difference_from_recommendations}
       </div>
     </div>
   );
