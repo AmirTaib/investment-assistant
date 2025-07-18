@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Investment Assistant Bot - Simplified Backend
 Essential APIs for daily insights and Firestore operations.
@@ -5,12 +6,15 @@ Essential APIs for daily insights and Firestore operations.
 
 import os
 import logging
+import requests
+import json
 from datetime import datetime
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 
 # Import Firestore client
 from firestore.client import store_insight, get_insights
+from context import get_prompt
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +31,7 @@ app = Flask(__name__)
 
 # Configuration
 PROJECT_ID = os.getenv('PROJECT_ID', 'investment-advisor-bot-2025')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 @app.route('/')
 def hello():
@@ -46,37 +51,77 @@ def health():
         'timestamp': datetime.now().isoformat(),
         'project_id': PROJECT_ID,
         'services': {
-            'firestore': 'connected'
+            'firestore': 'connected',
+            'openai': 'configured' if OPENAI_API_KEY else 'not_configured'
         }
     })
 
+def generate_investment_insight():
+    """Generate investment insight using ChatGPT API with detailed context"""
+    prompt = get_prompt()
+    if not OPENAI_API_KEY:
+        logger.error("OpenAI API key not configured")
+        raise Exception("OpenAI API key not configured")
+    headers = {
+        'Authorization': f'Bearer {OPENAI_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'model': 'gpt-4o',
+        'messages': [
+            {
+                'role': 'system',
+                'content': 'You are a professional investment advisor specializing in Israeli and US markets. Provide precise, actionable recommendations with specific amounts and detailed analysis. Focus on market-beating opportunities, not generic advice.'
+            },
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ],
+        'temperature': 0.7,
+        'max_tokens': 3000
+    }
+    response = requests.post(
+        'https://api.openai.com/v1/chat/completions',
+        headers=headers,
+        json=data,
+        timeout=30
+    )
+    if response.status_code == 200:
+        result = response.json()
+        content = result['choices'][0]['message']['content']
+        # Try to extract JSON from the response
+        try:
+            start_idx = content.find('{')
+            end_idx = content.rfind('}') + 1
+            json_str = content[start_idx:end_idx]
+            insight_data = json.loads(json_str)
+            # Add metadata
+            insight_data['source'] = 'investment_assistant'
+            insight_data['generated_at'] = datetime.utcnow().isoformat()
+            insight_data['type'] = 'daily_insight'
+            return insight_data
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from ChatGPT response: {e}")
+            raise Exception(f"Failed to parse JSON from ChatGPT response: {e}")
+    else:
+        logger.error(f"OpenAI API error: {response.status_code} - {response.text}")
+        raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
+
 @app.route('/api/insights/daily', methods=['GET'])
 def get_daily_insight():
-    """Generate and store daily investment insight (mock data)"""
+    """Generate and store daily investment insight using ChatGPT"""
     try:
-        # Generate mock daily insight
-        now = datetime.utcnow().isoformat()
-        
-        # Mock insight data - this would be replaced with real investment analysis
-        mock_insight = {
-            "timestamp": now,
-            "message": f"Daily investment insight generated at {now}. Market analysis shows positive momentum in technology sector. Consider reviewing portfolio allocation for optimal returns.",
-            "type": "daily_insight",
-            "source": "investment_assistant",
-            "priority": "medium"
-        }
-        
+        # Generate insight using ChatGPT
+        insight_data = generate_investment_insight()
         # Store to Firestore
-        store_insight(mock_insight)
-        
-        logger.info(f"Daily insight generated and stored: {now}")
-        
+        store_insight(insight_data)
+        logger.info(f"Daily insight generated and stored: {insight_data.get('timestamp', 'N/A')}")
         return jsonify({
             "status": "success",
             "message": "Daily insight generated successfully",
-            "data": mock_insight
+            "data": insight_data
         })
-        
     except Exception as e:
         logger.error(f"Error generating daily insight: {str(e)}")
         return jsonify({'error': str(e)}), 500
