@@ -71,7 +71,7 @@ def generate_investment_insight():
         'messages': [
             {
                 'role': 'system',
-                'content': 'You are a professional investment advisor specializing in Israeli and US markets. Provide precise, actionable recommendations with specific amounts and detailed analysis. Focus on market-beating opportunities, not generic advice.'
+                'content': 'You are a professional investment advisor specializing in Israeli and US markets. Provide precise, actionable recommendations with specific amounts and detailed analysis. Focus on market-beating opportunities, not generic advice. ALWAYS return valid JSON only, no additional text.'
             },
             {
                 'role': 'user',
@@ -79,7 +79,7 @@ def generate_investment_insight():
             }
         ],
         'temperature': 0.7,
-        'max_tokens': 3000
+        'max_tokens': 4000
     }
     response = requests.post(
         'https://api.openai.com/v1/chat/completions',
@@ -90,20 +90,70 @@ def generate_investment_insight():
     if response.status_code == 200:
         result = response.json()
         content = result['choices'][0]['message']['content']
-        # Try to extract JSON from the response
+        
+        # Try to extract JSON from the response with multiple strategies
+        json_str = None
+        
+        # Strategy 1: Look for JSON between curly braces
         try:
             start_idx = content.find('{')
             end_idx = content.rfind('}') + 1
-            json_str = content[start_idx:end_idx]
-            insight_data = json.loads(json_str)
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = content[start_idx:end_idx]
+                insight_data = json.loads(json_str)
+                logger.info("Successfully parsed JSON using curly brace extraction")
+                # Add metadata
+                insight_data['source'] = 'investment_assistant'
+                insight_data['generated_at'] = datetime.utcnow().isoformat()
+                insight_data['type'] = 'daily_insight'
+                return insight_data
+        except json.JSONDecodeError as e:
+            logger.warning(f"Strategy 1 failed: {e}")
+        
+        # Strategy 2: Try to clean the content and parse
+        try:
+            # Remove any markdown formatting
+            cleaned_content = content.replace('```json', '').replace('```', '').strip()
+            insight_data = json.loads(cleaned_content)
+            logger.info("Successfully parsed JSON using cleaned content")
             # Add metadata
             insight_data['source'] = 'investment_assistant'
             insight_data['generated_at'] = datetime.utcnow().isoformat()
             insight_data['type'] = 'daily_insight'
             return insight_data
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON from ChatGPT response: {e}")
-            raise Exception(f"Failed to parse JSON from ChatGPT response: {e}")
+            logger.warning(f"Strategy 2 failed: {e}")
+        
+        # Strategy 3: Try to fix common JSON issues
+        try:
+            # Replace problematic characters and fix common issues
+            fixed_content = content
+            # Remove any text before the first {
+            start_idx = fixed_content.find('{')
+            if start_idx != -1:
+                fixed_content = fixed_content[start_idx:]
+            # Remove any text after the last }
+            end_idx = fixed_content.rfind('}')
+            if end_idx != -1:
+                fixed_content = fixed_content[:end_idx + 1]
+            
+            # Fix common Hebrew text issues
+            fixed_content = fixed_content.replace('\n', ' ').replace('\r', ' ')
+            # Remove any trailing commas before closing braces
+            import re
+            fixed_content = re.sub(r',(\s*[}\]])', r'\1', fixed_content)
+            
+            insight_data = json.loads(fixed_content)
+            logger.info("Successfully parsed JSON using fixed content")
+            # Add metadata
+            insight_data['source'] = 'investment_assistant'
+            insight_data['generated_at'] = datetime.utcnow().isoformat()
+            insight_data['type'] = 'daily_insight'
+            return insight_data
+        except json.JSONDecodeError as e:
+            logger.error(f"All JSON parsing strategies failed. Last error: {e}")
+            logger.error(f"Content received: {content[:500]}...")
+            raise Exception(f"Failed to parse JSON from ChatGPT response after multiple attempts: {e}")
     else:
         logger.error(f"OpenAI API error: {response.status_code} - {response.text}")
         raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")

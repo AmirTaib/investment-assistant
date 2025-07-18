@@ -3,51 +3,67 @@ import { getFirestore, collection, onSnapshot, query, orderBy, limit, DocumentDa
 import { initializeApp } from "firebase/app";
 import { firebaseConfig, FIRESTORE_COLLECTIONS, APP_CONSTANTS, UI_CONSTANTS } from './config';
 
-interface Recommendation {
-  symbol: string;
-  action: 'BUY' | 'SELL' | 'HOLD';
-  type: 'SHORT_TERM' | 'LONG_TERM';
-  target_price: string;
-  stop_loss: string;
-  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
-  reason: string;
-  timeframe: string;
-  amount_ils: string;
+interface KeyEvent {
+  event: string;
+  importance: string;
+  impact: string;
 }
 
 interface MarketOverview {
   summary: string;
-  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
-  key_events: string[];
+  sentiment: 'חיובי' | 'שלילי' | 'ניטרלי';
+  key_events: KeyEvent[];
   trending_sectors: string[];
+  action_items: string[];
 }
 
-interface PortfolioAnalysis {
-  current_allocation: string;
-  recommended_changes: string[];
-  risk_level: 'HIGH' | 'MEDIUM' | 'LOW';
-  next_month_allocation: string;
+interface Recommendation {
+  symbol: string;
+  action: 'לקנות' | 'למכור' | 'להחזיק';
+  action_hebrew: string;
+  amount_ils: string;
+  percentage_of_portfolio: string;
+  current_price: string;
+  target_price: string;
+  stop_loss: string;
+  confidence: 'גבוה' | 'בינוני' | 'נמוך';
+  reason: string;
+  timeframe: string;
+  risks: string;
+  why_despite_risks: string;
+  type: 'קצר טווח' | 'ארוך טווח';
 }
 
 interface SectorAnalysis {
   sector: string;
-  status: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-  recommendation: 'BUY' | 'HOLD' | 'AVOID';
+  status: 'חיובי' | 'שלילי' | 'ניטרלי';
+  recommendation: 'לקנות' | 'להחזיק' | 'להימנע';
+  action_required: string;
   top_picks: string[];
   reason: string;
+  risks: string;
+  why_despite_risks: string;
+  portfolio_impact: string;
 }
 
 interface Alert {
-  type: 'EARNINGS' | 'NEWS' | 'TECHNICAL';
+  type: 'רווחים' | 'חדשות' | 'טכני';
   symbol: string;
   message: string;
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  priority: 'גבוה' | 'בינוני' | 'נמוך';
+  action_required: string;
+  urgency: 'דחוף' | 'בינוני' | 'לא דחוף';
+  difference_from_recommendations: string;
+  immediate_action: string;
 }
 
 interface RiskManagement {
-  current_risk: 'HIGH' | 'MEDIUM' | 'LOW';
-  recommendations: string[];
+  current_risk: 'גבוה' | 'בינוני' | 'נמוך';
+  risk_type: string;
+  explanation: string;
+  immediate_actions: string[];
   stop_loss_levels: string[];
+  hedging_strategies: string[];
 }
 
 interface Insight {
@@ -60,7 +76,6 @@ interface Insight {
   type: string;
   market_overview: MarketOverview;
   recommendations: Recommendation[];
-  portfolio_analysis: PortfolioAnalysis;
   sector_analysis: SectorAnalysis[];
   alerts: Alert[];
   risk_management: RiskManagement;
@@ -68,6 +83,7 @@ interface Insight {
   doc_id?: string;
   // Legacy support
   message?: string;
+  portfolio_analysis?: any;
 }
 
 const app = initializeApp(firebaseConfig);
@@ -136,8 +152,8 @@ function App(): JSX.Element {
     <div key={index} style={{
       padding: '20px',
       margin: '15px 0',
-      backgroundColor: rec.action === 'BUY' ? '#d4edda' : rec.action === 'SELL' ? '#f8d7da' : '#fff3cd',
-      border: `3px solid ${rec.action === 'BUY' ? '#27ae60' : rec.action === 'SELL' ? '#e74c3c' : '#f39c12'}`,
+      backgroundColor: rec.action === 'לקנות' ? '#d4edda' : rec.action === 'למכור' ? '#f8d7da' : '#fff3cd',
+      border: `3px solid ${rec.action === 'לקנות' ? '#27ae60' : rec.action === 'למכור' ? '#e74c3c' : '#f39c12'}`,
       borderRadius: '12px',
       boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
       direction: 'rtl'
@@ -146,9 +162,9 @@ function App(): JSX.Element {
         fontWeight: 'bold', 
         fontSize: '22px',
         marginBottom: '10px',
-        color: rec.action === 'BUY' ? '#27ae60' : rec.action === 'SELL' ? '#e74c3c' : '#f39c12'
+        color: rec.action === 'לקנות' ? '#27ae60' : rec.action === 'למכור' ? '#e74c3c' : '#f39c12'
       }}>
-        {rec.symbol} - {rec.action} ({rec.type})
+        {rec.symbol} - {rec.action_hebrew} ({rec.type})
       </div>
       <div style={{ 
         fontSize: '18px', 
@@ -156,7 +172,7 @@ function App(): JSX.Element {
         marginBottom: '15px',
         fontWeight: '500'
       }}>
-        <strong>סכום:</strong> {rec.amount_ils} ש"ח | <strong>יעד:</strong> {rec.target_price} | <strong>סטופ:</strong> {rec.stop_loss} | <strong>ביטחון:</strong> {rec.confidence}
+        <strong>סכום:</strong> {rec.amount_ils} ש"ח ({rec.percentage_of_portfolio}) | <strong>מחיר נוכחי:</strong> {rec.current_price} | <strong>יעד:</strong> {rec.target_price} | <strong>סטופ:</strong> {rec.stop_loss} | <strong>ביטחון:</strong> {rec.confidence}
       </div>
       <div style={{ 
         fontSize: '16px', 
@@ -164,7 +180,23 @@ function App(): JSX.Element {
         lineHeight: '1.6',
         color: '#34495e'
       }}>
-        {rec.reason}
+        <strong>סיבה:</strong> {rec.reason}
+      </div>
+      <div style={{ 
+        fontSize: '14px', 
+        color: '#e74c3c', 
+        marginTop: '10px',
+        fontWeight: '500'
+      }}>
+        <strong>סיכונים:</strong> {rec.risks}
+      </div>
+      <div style={{ 
+        fontSize: '14px', 
+        color: '#27ae60', 
+        marginTop: '5px',
+        fontWeight: '500'
+      }}>
+        <strong>למה בכל זאת:</strong> {rec.why_despite_risks}
       </div>
       <div style={{ 
         fontSize: '14px', 
@@ -182,8 +214,8 @@ function App(): JSX.Element {
     <div key={index} style={{
       padding: '20px',
       margin: '15px 0',
-      backgroundColor: sector.status === 'BULLISH' ? '#d4edda' : sector.status === 'BEARISH' ? '#f8d7da' : '#fff3cd',
-      border: `3px solid ${sector.status === 'BULLISH' ? '#27ae60' : sector.status === 'BEARISH' ? '#e74c3c' : '#f39c12'}`,
+      backgroundColor: sector.status === 'חיובי' ? '#d4edda' : sector.status === 'שלילי' ? '#f8d7da' : '#fff3cd',
+      border: `3px solid ${sector.status === 'חיובי' ? '#27ae60' : sector.status === 'שלילי' ? '#e74c3c' : '#f39c12'}`,
       borderRadius: '12px',
       boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
       direction: 'rtl'
@@ -192,15 +224,27 @@ function App(): JSX.Element {
         fontWeight: 'bold', 
         fontSize: '20px',
         marginBottom: '10px',
-        color: sector.status === 'BULLISH' ? '#27ae60' : sector.status === 'BEARISH' ? '#e74c3c' : '#f39c12'
+        color: sector.status === 'חיובי' ? '#27ae60' : sector.status === 'שלילי' ? '#e74c3c' : '#f39c12'
       }}>
         {sector.sector} - {sector.status} ({sector.recommendation})
+      </div>
+      <div style={{ fontSize: '16px', color: '#2c3e50', marginBottom: '10px', fontWeight: '500' }}>
+        <strong>פעולה נדרשת:</strong> {sector.action_required}
       </div>
       <div style={{ fontSize: '16px', color: '#2c3e50', marginBottom: '10px', fontWeight: '500' }}>
         <strong>מומלצות:</strong> {sector.top_picks?.join(', ') || 'אין המלצות'}
       </div>
       <div style={{ fontSize: '16px', marginTop: '10px', lineHeight: '1.6', color: '#34495e' }}>
-        {sector.reason}
+        <strong>סיבה:</strong> {sector.reason}
+      </div>
+      <div style={{ fontSize: '14px', color: '#e74c3c', marginTop: '10px', fontWeight: '500' }}>
+        <strong>סיכונים:</strong> {sector.risks}
+      </div>
+      <div style={{ fontSize: '14px', color: '#27ae60', marginTop: '5px', fontWeight: '500' }}>
+        <strong>למה בכל זאת:</strong> {sector.why_despite_risks}
+      </div>
+      <div style={{ fontSize: '14px', color: '#3498db', marginTop: '5px', fontWeight: '500' }}>
+        <strong>השפעה על התיק:</strong> {sector.portfolio_impact}
       </div>
     </div>
   );
@@ -210,8 +254,8 @@ function App(): JSX.Element {
     <div key={index} style={{
       padding: '20px',
       margin: '15px 0',
-      backgroundColor: alert.priority === 'HIGH' ? '#f8d7da' : alert.priority === 'MEDIUM' ? '#fff3cd' : '#d1ecf1',
-      border: `3px solid ${alert.priority === 'HIGH' ? '#e74c3c' : alert.priority === 'MEDIUM' ? '#f39c12' : '#3498db'}`,
+      backgroundColor: alert.priority === 'גבוה' ? '#f8d7da' : alert.priority === 'בינוני' ? '#fff3cd' : '#d1ecf1',
+      border: `3px solid ${alert.priority === 'גבוה' ? '#e74c3c' : alert.priority === 'בינוני' ? '#f39c12' : '#3498db'}`,
       borderRadius: '12px',
       boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
       direction: 'rtl'
@@ -220,12 +264,21 @@ function App(): JSX.Element {
         fontWeight: 'bold', 
         fontSize: '20px',
         marginBottom: '10px',
-        color: alert.priority === 'HIGH' ? '#e74c3c' : alert.priority === 'MEDIUM' ? '#f39c12' : '#3498db'
+        color: alert.priority === 'גבוה' ? '#e74c3c' : alert.priority === 'בינוני' ? '#f39c12' : '#3498db'
       }}>
-        {alert.type} - {alert.symbol} ({alert.priority})
+        {alert.type} - {alert.symbol} ({alert.priority}) - {alert.urgency}
       </div>
-      <div style={{ fontSize: '16px', lineHeight: '1.6', color: '#34495e' }}>
-        {alert.message}
+      <div style={{ fontSize: '16px', lineHeight: '1.6', color: '#34495e', marginBottom: '10px' }}>
+        <strong>התראה:</strong> {alert.message}
+      </div>
+      <div style={{ fontSize: '16px', lineHeight: '1.6', color: '#e74c3c', marginBottom: '10px' }}>
+        <strong>פעולה נדרשת:</strong> {alert.action_required}
+      </div>
+      <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#f39c12', marginBottom: '10px' }}>
+        <strong>פעולה מיידית:</strong> {alert.immediate_action}
+      </div>
+      <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#3498db' }}>
+        <strong>הבדל מהמלצות:</strong> {alert.difference_from_recommendations}
       </div>
     </div>
   );
@@ -269,7 +322,7 @@ function App(): JSX.Element {
             </h3>
             <div style={{ 
               padding: '20px', 
-              backgroundColor: insight.market_overview.sentiment === 'Bullish' ? '#d4edda' : insight.market_overview.sentiment === 'Bearish' ? '#f8d7da' : '#fff3cd',
+              backgroundColor: insight.market_overview.sentiment === 'חיובי' ? '#d4edda' : insight.market_overview.sentiment === 'שלילי' ? '#f8d7da' : '#fff3cd',
               borderRadius: '12px',
               fontSize: '18px',
               lineHeight: '1.6',
@@ -283,12 +336,31 @@ function App(): JSX.Element {
               }}>
                 {insight.market_overview.sentiment || 'לא מוגדר'} - {insight.market_overview.summary || 'אין סיכום'}
               </div>
-              <div style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
-                <strong>אירועים חשובים:</strong> {insight.market_overview.key_events?.join(', ') || 'אין אירועים חשובים'}
-              </div>
+                              {insight.market_overview.key_events?.length > 0 && (
+                  <div style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
+                    <strong>אירועים חשובים:</strong>
+                    <ul style={{ margin: '10px 0', paddingRight: '20px' }}>
+                      {insight.market_overview.key_events.map((event, index) => (
+                        <li key={index} style={{ marginBottom: '8px' }}>
+                          <strong>{event.event}</strong> - {event.importance} | <em>השפעה:</em> {event.impact}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               <div style={{ fontSize: '16px', color: '#666' }}>
                 <strong>סקטורים חמים:</strong> {insight.market_overview.trending_sectors?.join(', ') || 'אין סקטורים חמים'}
               </div>
+              {insight.market_overview.action_items?.length > 0 && (
+                <div style={{ fontSize: '16px', color: '#2c3e50', marginTop: '15px', fontWeight: 'bold' }}>
+                  <strong>פעולות נדרשות:</strong>
+                  <ul style={{ margin: '10px 0', paddingRight: '20px' }}>
+                    {insight.market_overview.action_items.map((action, index) => (
+                      <li key={index} style={{ marginBottom: '8px' }}>{action}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -311,50 +383,7 @@ function App(): JSX.Element {
           </div>
         )}
 
-        {/* Portfolio Analysis */}
-        {insight.portfolio_analysis && (
-          <div style={{ marginBottom: '25px' }}>
-            <h3 style={{ 
-              fontSize: '24px', 
-              marginBottom: '15px', 
-              color: '#2c3e50',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              borderBottom: '3px solid #9b59b6',
-              paddingBottom: '10px'
-            }}>
-              📈 ניתוח תיק
-            </h3>
-            <div style={{ 
-              padding: '20px', 
-              backgroundColor: '#f8f9fa',
-              borderRadius: '12px',
-              fontSize: '18px',
-              border: '2px solid #e0e0e0',
-              direction: 'rtl'
-            }}>
-              <div style={{ marginBottom: '15px' }}>
-                <strong>הקצאה נוכחית:</strong> {insight.portfolio_analysis.current_allocation || 'לא מוגדר'}
-              </div>
-              <div style={{ marginBottom: '15px' }}>
-                <strong>רמת סיכון:</strong> {insight.portfolio_analysis.risk_level || 'לא מוגדר'}
-              </div>
-              <div style={{ marginBottom: '15px' }}>
-                <strong>הקצאת החודש הבא:</strong> {insight.portfolio_analysis.next_month_allocation || 'לא מוגדר'}
-              </div>
-              {insight.portfolio_analysis.recommended_changes?.length > 0 && (
-                <div>
-                  <strong>שינויים מומלצים:</strong>
-                  <ul style={{ margin: '10px 0', paddingRight: '20px', fontSize: '16px' }}>
-                    {insight.portfolio_analysis.recommended_changes.map((change, index) => (
-                      <li key={index} style={{ marginBottom: '8px' }}>{change}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Sector Analysis */}
         {insight.sector_analysis?.length > 0 && (
@@ -418,10 +447,16 @@ function App(): JSX.Element {
                 <strong>סיכון נוכחי:</strong> {insight.risk_management.current_risk || 'לא מוגדר'}
               </div>
               <div style={{ marginBottom: '15px' }}>
-                <strong>המלצות:</strong>
+                <strong>סוג סיכון:</strong> {insight.risk_management.risk_type || 'לא מוגדר'}
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <strong>הסבר:</strong> {insight.risk_management.explanation || 'אין הסבר'}
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <strong>פעולות מיידיות:</strong>
                 <ul style={{ margin: '10px 0', paddingRight: '20px', fontSize: '16px' }}>
-                  {insight.risk_management.recommendations?.map((rec, index) => (
-                    <li key={index} style={{ marginBottom: '8px' }}>{rec}</li>
+                  {insight.risk_management.immediate_actions?.map((action, index) => (
+                    <li key={index} style={{ marginBottom: '8px' }}>{action}</li>
                   )) || []}
                 </ul>
               </div>

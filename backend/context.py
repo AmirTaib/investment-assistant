@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Investment Assistant - Context definitions for prompt generation
-This file holds all context strings, organized by topic, for easy maintenance and reuse.
+Investment Assistant - Enhanced Context for Actionable Insights
+This file generates more visual, actionable, and user-friendly investment insights.
 """
 
 from datetime import datetime
@@ -36,45 +36,12 @@ def get_investment_philosophy():
         "- Always provide specific amounts and allocation percentages\n"
     )
 
-def get_daily_monitoring():
-    return (
-        "DAILY MONITORING:\n"
-        "- Morning update at 8:30 AM Israel time\n"
-        "- Midday check at 1:30 PM (US market open)\n"
-        "- Afternoon check at 5:00 PM (mid-US trading)\n"
-        "- Only send alerts for significant changes requiring immediate action\n"
-    )
-
-def get_analysis_requirements():
-    return (
-        "ANALYSIS REQUIREMENTS:\n"
-        "- Market overview with specific sentiment and key events\n"
-        "- 3-5 specific buy/sell recommendations with exact amounts\n"
-        "- Portfolio analysis considering accumulated capital\n"
-        "- Sector analysis with trending sectors and top picks\n"
-        "- Risk management with specific stop-loss levels\n"
-        "- Alerts for earnings, news, or technical breakouts\n"
-    )
-
-def get_quality_standards():
-    return (
-        "QUALITY STANDARDS:\n"
-        "- Provide market-beating insights, not generic advice\n"
-        "- Include specific amounts for each recommendation\n"
-        "- Consider current market conditions and timing\n"
-        "- Explain both bullish and bearish scenarios\n"
-        "- Track performance and adjust strategy accordingly\n"
-    )
-
 def get_full_context():
     return (
         "You are a professional investment advisor for an Israeli investor with the following profile:\n\n"
         + get_investor_profile() + "\n"
         + get_portfolio_strategy() + "\n"
-        + get_investment_philosophy() + "\n"
-        + get_daily_monitoring() + "\n"
-        + get_analysis_requirements() + "\n"
-        + get_quality_standards()
+        + get_investment_philosophy()
     )
 
 def get_prompt(date=None):
@@ -83,93 +50,109 @@ def get_prompt(date=None):
     context = get_full_context()
     return f"""{context}
 
-Generate a comprehensive daily investment insight for {date} with the following structure:
+Generate a comprehensive daily investment insight for {date} with the following ENHANCED structure:
 
-1. DAILY MARKET OVERVIEW:
+1. MARKET OVERVIEW (Market Review):
 - What happened yesterday and what to expect today
-- Key market events and their impact
-- Trending sectors and momentum indicators
+- Important events you must know (not just information)
+- Explanation of why it's important for you to know this
+- How it affects your investments
 
-2. SPECIFIC RECOMMENDATIONS (3-5):
-- Exact symbols with buy/sell/hold actions
-- Specific amounts to invest (in ILS)
-- Target prices and stop-loss levels
-- Confidence levels and timeframes
-- Detailed reasoning for each recommendation
+2. SPECIFIC RECOMMENDATIONS (Investment Recommendations):
+For each position provide:
+- Action: Buy/Sell/Hold
+- Amount to invest/exit (in ILS and portfolio percentages)
+- Current value - Buy price - Stop - Sell target
+- Detailed reasoning
+- Timeframe
+- Existing risks and why this recommendation is still valid
 
-3. PORTFOLIO ANALYSIS:
-- Current allocation status
-- Recommended changes based on market conditions
-- How to allocate the next 2,000 ILS monthly investment
-- Risk level assessment
+3. SECTOR ANALYSIS (Sector Analysis):
+- What action is required based on the analysis
+- What are the risks
+- Why this recommendation is still valid
+- How it affects your portfolio
 
-4. SECTOR ANALYSIS:
-- Hot sectors with specific stock picks
-- Sector rotation opportunities
-- Contrarian plays if markets are overcrowded
+4. ALERTS (Alerts):
+- If it's an alert to sell immediately something you hold
+- If it's an alert to buy immediately something you don't have
+- What action is required and urgency
+- How it differs from regular investment recommendations
 
-5. RISK MANAGEMENT:
-- Current risk assessment
-- Specific stop-loss recommendations
-- Hedging strategies if needed
+5. RISK MANAGEMENT (Risk Management):
+- Whether it's general portfolio risk management or for that day
+- Friendly and simple explanation
+- What you need to do now
 
-6. ALERTS:
-- Earnings announcements
-- Important news events
-- Technical breakouts to watch
-
-Return the result as a valid JSON with the following structure:
+Return the result as a valid JSON with the following ENHANCED structure:
 {{
     "timestamp": "ISO timestamp",
-    "title": "Daily Investment Insight Title",
+    "title": "Daily Investment Insights - {date}",
     "date": "DD/MM/YYYY",
     "currency": "ILS",
     "market_overview": {{
-        "summary": "Market summary in Hebrew",
-        "sentiment": "Bullish/Bearish/Neutral",
-        "key_events": ["Event 1 in Hebrew", "Event 2 in Hebrew"],
-        "trending_sectors": ["Sector 1", "Sector 2"]
+        "summary": "Market summary - what happened and what's expected",
+        "sentiment": "Positive/Negative/Neutral",
+        "key_events": [
+            {{
+                "event": "Important event",
+                "importance": "Why it's important for you to know this",
+                "impact": "How it affects your investments"
+            }}
+        ],
+        "trending_sectors": ["Sector 1", "Sector 2"],
+        "action_items": ["Action 1 you need to take", "Action 2 you need to take"]
     }},
     "recommendations": [
         {{
             "symbol": "NVDA",
-            "action": "BUY/SELL/HOLD",
-            "type": "SHORT_TERM/LONG_TERM",
-            "target_price": "Target price",
-            "stop_loss": "Stop loss price",
-            "confidence": "HIGH/MEDIUM/LOW",
-            "reason": "Detailed reasoning in Hebrew",
+            "action": "Buy/Sell/Hold",
+            "action_hebrew": "Detailed action in Hebrew",
+            "amount_ils": "5000",
+            "percentage_of_portfolio": "15%",
+            "current_price": "750",
+            "target_price": "850",
+            "stop_loss": "700",
+            "confidence": "High/Medium/Low",
+            "reason": "Detailed reasoning why to buy/sell",
             "timeframe": "1-2 weeks / 3-6 months",
-            "amount_ils": "Specific amount in ILS"
+            "risks": "What are the risks",
+            "why_despite_risks": "Why this recommendation is still valid",
+            "type": "Short term/Long term"
         }}
     ],
-    "portfolio_analysis": {{
-        "current_allocation": "Current portfolio allocation",
-        "recommended_changes": ["Change 1 in Hebrew", "Change 2 in Hebrew"],
-        "risk_level": "HIGH/MEDIUM/LOW",
-        "next_month_allocation": "How to allocate 2000 ILS in Hebrew"
-    }},
     "sector_analysis": [
         {{
             "sector": "AI/Technology",
-            "status": "BULLISH/BEARISH/NEUTRAL",
-            "recommendation": "BUY/HOLD/AVOID",
+            "status": "Positive/Negative/Neutral",
+            "recommendation": "Buy/Hold/Avoid",
+            "action_required": "What action is required based on the analysis",
             "top_picks": ["Stock 1", "Stock 2"],
-            "reason": "Sector reasoning in Hebrew"
+            "reason": "Why the sector is interesting",
+            "risks": "What are the sector risks",
+            "why_despite_risks": "Why to recommend despite risks",
+            "portfolio_impact": "How it affects your portfolio"
         }}
     ],
     "alerts": [
         {{
-            "type": "EARNINGS/NEWS/TECHNICAL",
+            "type": "Earnings/News/Technical",
             "symbol": "NVDA",
-            "message": "Alert message in Hebrew",
-            "priority": "HIGH/MEDIUM/LOW"
+            "message": "What the alert says",
+            "priority": "High/Medium/Low",
+            "action_required": "What action is required",
+            "urgency": "Urgent/Medium/Not urgent",
+            "difference_from_recommendations": "How it differs from regular recommendations",
+            "immediate_action": "Sell immediately something you hold / Buy immediately something you don't have"
         }}
     ],
     "risk_management": {{
-        "current_risk": "HIGH/MEDIUM/LOW",
-        "recommendations": ["Risk recommendation 1 in Hebrew", "Risk recommendation 2 in Hebrew"],
-        "stop_loss_levels": ["Stop level 1", "Stop level 2"]
+        "current_risk": "High/Medium/Low",
+        "risk_type": "General portfolio risk management / For that day",
+        "explanation": "Friendly and simple explanation",
+        "immediate_actions": ["Action 1 you need to take now", "Action 2"],
+        "stop_loss_levels": ["Stop level 1", "Stop level 2"],
+        "hedging_strategies": ["Hedging strategy 1", "Hedging strategy 2"]
     }}
 }}
 
@@ -179,5 +162,9 @@ IMPORTANT REQUIREMENTS:
 - Focus on market-beating opportunities, not generic advice
 - Consider the investor's aggressive risk tolerance
 - Include both technical and fundamental analysis
+- Give clear and user-friendly explanations
+- Focus on specific actions that can be taken
+- Always explain why the recommendation is important and what the risks are
 - Return only valid JSON without additional text
+- Ensure all Hebrew text is properly encoded and doesn't break JSON structure
 """ 
