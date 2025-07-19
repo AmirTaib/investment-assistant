@@ -1,7 +1,48 @@
 import React from 'react';
 import { Recommendation as RecommendationType } from '../types/insights';
-import { theme } from '../styles/theme';
 import { getActionColor } from '../utils/formatters';
+import { AlertPopup, ConfirmPopup } from './Popup';
+import { useAlert } from '../hooks/useAlert';
+
+// Apple-like design constants
+const appleColors = {
+  primary: '#007AFF',
+  success: '#34C759',
+  warning: '#FF9500',
+  danger: '#FF3B30',
+  background: {
+    primary: '#FFFFFF',
+    secondary: '#F2F2F7',
+    tertiary: '#E5E5EA',
+  },
+  text: {
+    primary: '#000000',
+    secondary: '#3C3C43',
+    tertiary: '#8E8E93',
+  },
+  border: {
+    light: '#C6C6C8',
+    medium: '#8E8E93',
+  },
+};
+
+const appleSpacing = {
+  xs: '4px',
+  sm: '8px',
+  md: '16px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '48px',
+};
+
+const appleBorderRadius = {
+  sm: '6px',
+  md: '12px',
+  lg: '16px',
+  xl: '20px',
+  '2xl': '24px',
+  full: '9999px',
+};
 
 interface RecommendationProps {
   recommendation: RecommendationType;
@@ -10,346 +51,395 @@ interface RecommendationProps {
 
 export const Recommendation: React.FC<RecommendationProps> = ({ recommendation, index }) => {
   const actionColor = getActionColor(recommendation.action);
+  const { alert, showSuccess, hideAlert } = useAlert();
+  const [showConfirmChat, setShowConfirmChat] = React.useState(false);
   
   const getActionBgColor = () => {
     switch (actionColor) {
       case 'success':
-        return theme.colors.success[50];
+        return '#E8F5E8';
       case 'danger':
-        return theme.colors.danger[50];
+        return '#FFE8E8';
       case 'warning':
-        return theme.colors.warning[50];
+        return '#FFF8E8';
       default:
-        return theme.colors.neutral[50];
+        return '#F2F2F7';
     }
   };
 
   const getActionBorderColor = () => {
     switch (actionColor) {
       case 'success':
-        return theme.colors.success[500];
+        return appleColors.success;
       case 'danger':
-        return theme.colors.danger[500];
+        return appleColors.danger;
       case 'warning':
-        return theme.colors.warning[500];
+        return appleColors.warning;
       default:
-        return theme.colors.neutral[300];
+        return appleColors.border.light;
     }
   };
 
-  const getActionTextColor = () => {
-    switch (actionColor) {
-      case 'success':
-        return theme.colors.success[700];
-      case 'danger':
-        return theme.colors.danger[700];
-      case 'warning':
-        return theme.colors.warning[700];
-      default:
-        return theme.colors.neutral[700];
-    }
+  const openChatGPT = () => {
+    setShowConfirmChat(true);
+  };
+
+  const handleConfirmChat = () => {
+    const context = `
+Investment Recommendation Context:
+
+📈 Stock: ${recommendation.symbol}
+🎯 Action: ${recommendation.action}
+💰 Current Price: ${recommendation.current_price}
+📊 Target Price: ${recommendation.target_price}
+⏰ Timeframe: ${recommendation.timeframe}
+🎯 Confidence: ${recommendation.confidence}
+📊 Type: ${recommendation.type}
+
+📋 Reason:
+${recommendation.reason}
+
+🚀 Catalyst:
+${recommendation.catalyst}
+
+⚠️ Risks:
+${recommendation.risks}
+
+✅ Why Despite Risks:
+${recommendation.why_despite_risks}
+
+💰 Investment Details:
+• Amount: ${recommendation.amount_ils}
+• Portfolio %: ${recommendation.percentage_of_portfolio}
+• Stop Loss: ${recommendation.stop_loss}
+
+Please help me understand this investment recommendation better. I'd like to discuss:
+1. The reasoning behind this recommendation
+2. The potential risks and how to mitigate them
+3. Alternative investment strategies
+4. Market conditions that could affect this recommendation
+5. Any additional research I should do
+
+What are your thoughts on this recommendation?
+    `;
+    
+    // Copy context to clipboard
+    navigator.clipboard.writeText(context).then(() => {
+      // Show success popup
+      showSuccess(
+        'הקונטקסט הועתק!',
+        'הקונטקסט הועתק ללוח בהצלחה. עכשיו נפתח ChatGPT...',
+        3000
+      );
+      
+      // Open ChatGPT in new tab after a short delay
+      setTimeout(() => {
+        window.open('https://chat.openai.com', '_blank');
+      }, 500);
+    }).catch(() => {
+      // Fallback if clipboard fails
+      showSuccess(
+        'פתיחת ChatGPT',
+        'נפתח ChatGPT בחלון חדש...',
+        2000
+      );
+      window.open('https://chat.openai.com', '_blank');
+    });
   };
 
   return (
-    <div style={{
-      padding: theme.spacing[8],
-      margin: `${theme.spacing[6]} 0`,
-      backgroundColor: getActionBgColor(),
-      border: `3px solid ${getActionBorderColor()}`,
-      borderRadius: theme.borderRadius['2xl'],
-      boxShadow: theme.shadows.lg,
-      direction: 'rtl',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Action Badge */}
+    <>
       <div style={{
-        position: 'absolute',
-        top: theme.spacing[4],
-        left: theme.spacing[4],
-        backgroundColor: getActionBorderColor(),
-        color: theme.colors.text.inverse,
-        padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-        borderRadius: theme.borderRadius.full,
-        fontSize: theme.typography.fontSize.sm,
-        fontWeight: theme.typography.fontWeight.bold,
-        textTransform: 'uppercase'
+        padding: appleSpacing.xl,
+        backgroundColor: getActionBgColor(),
+        borderRadius: appleBorderRadius['2xl'],
+        border: `2px solid ${getActionBorderColor()}`,
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        direction: 'rtl',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        {recommendation.action_hebrew}
-      </div>
-
-      {/* Header */}
-      <div style={{
-        fontWeight: theme.typography.fontWeight.bold,
-        fontSize: theme.typography.fontSize['2xl'],
-        marginBottom: theme.spacing[6],
-        color: getActionTextColor(),
-        textAlign: 'center',
-        marginTop: theme.spacing[4]
-      }}>
-        {recommendation.symbol} - {recommendation.type}
-      </div>
-
-      {/* Key Metrics Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[6],
-        backgroundColor: theme.colors.background.primary,
-        borderRadius: theme.borderRadius.lg,
-        padding: theme.spacing[6],
-        boxShadow: theme.shadows.sm
-      }}>
+        {/* Action Badge */}
         <div style={{
-          textAlign: 'center',
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.primary[50],
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.primary[200]}`
+          position: 'absolute',
+          top: appleSpacing.md,
+          left: appleSpacing.md,
+          backgroundColor: getActionBorderColor(),
+          color: '#FFFFFF',
+          padding: `${appleSpacing.xs} ${appleSpacing.sm}`,
+          borderRadius: appleBorderRadius.full,
+          fontSize: '12px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          zIndex: 1
         }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary,
-            marginBottom: theme.spacing[1]
-          }}>
-            סכום השקעה
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text.primary
-          }}>
-            {recommendation.amount_ils} ש"ח
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary
-          }}>
-            ({recommendation.percentage_of_portfolio})
-          </div>
+          {recommendation.action}
         </div>
 
+        {/* ChatGPT Button */}
+        <button
+          onClick={openChatGPT}
+          style={{
+            position: 'absolute',
+            top: appleSpacing.md,
+            right: appleSpacing.md,
+            backgroundColor: appleColors.primary,
+            color: '#FFFFFF',
+            border: 'none',
+            padding: `${appleSpacing.sm} ${appleSpacing.md}`,
+            borderRadius: appleBorderRadius.full,
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: appleSpacing.xs,
+            zIndex: 1,
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#0056CC';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = appleColors.primary;
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          💬 ChatGPT
+        </button>
+
+        {/* Header */}
         <div style={{
           textAlign: 'center',
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.success[50],
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.success[200]}`
-        }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary,
-            marginBottom: theme.spacing[1]
-          }}>
-            מחיר נוכחי
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text.primary
-          }}>
-            {recommendation.current_price}
-          </div>
-        </div>
-
-        <div style={{
-          textAlign: 'center',
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.primary[50],
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.primary[200]}`
-        }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary,
-            marginBottom: theme.spacing[1]
-          }}>
-            מחיר יעד
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.success[600]
-          }}>
-            {recommendation.target_price}
-          </div>
-        </div>
-
-        <div style={{
-          textAlign: 'center',
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.danger[50],
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.danger[200]}`
-        }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary,
-            marginBottom: theme.spacing[1]
-          }}>
-            סטופ לוס
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.danger[600]
-          }}>
-            {recommendation.stop_loss}
-          </div>
-        </div>
-
-        <div style={{
-          textAlign: 'center',
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.warning[50],
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.warning[200]}`
-        }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary,
-            marginBottom: theme.spacing[1]
-          }}>
-            רמת ביטחון
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.warning[600]
-          }}>
-            {recommendation.confidence}
-          </div>
-        </div>
-
-        <div style={{
-          textAlign: 'center',
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.neutral[50],
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.neutral[200]}`
-        }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.text.secondary,
-            marginBottom: theme.spacing[1]
-          }}>
-            טווח זמן
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text.primary
-          }}>
-            {recommendation.timeframe}
-          </div>
-        </div>
-      </div>
-
-      {/* Content Sections */}
-      <div style={{ display: 'grid', gap: theme.spacing[6] }}>
-        {/* Reason */}
-        <div style={{
-          backgroundColor: theme.colors.background.primary,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing[6],
-          boxShadow: theme.shadows.sm
+          marginBottom: appleSpacing.xl,
+          paddingTop: appleSpacing.lg
         }}>
           <h4 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[4],
-            color: theme.colors.text.primary
+            fontSize: '24px',
+            fontWeight: 700,
+            color: appleColors.text.primary,
+            marginBottom: appleSpacing.md
           }}>
-            💡 סיבה להמלצה
+            {recommendation.symbol}
           </h4>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            lineHeight: theme.typography.lineHeight.relaxed,
-            color: theme.colors.text.primary,
-            margin: 0
+          <div style={{
+            fontSize: '18px',
+            color: appleColors.text.secondary,
+            marginBottom: appleSpacing.sm
+          }}>
+            {recommendation.current_price} → {recommendation.target_price}
+          </div>
+          <div style={{
+            fontSize: '16px',
+            color: appleColors.text.tertiary
+          }}>
+            {recommendation.timeframe} • ביטחון: {recommendation.confidence}
+          </div>
+        </div>
+
+        {/* Investment Details Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: appleSpacing.md,
+          marginBottom: appleSpacing.xl,
+          backgroundColor: appleColors.background.primary,
+          padding: appleSpacing.lg,
+          borderRadius: appleBorderRadius.lg,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '14px',
+              color: appleColors.text.secondary,
+              marginBottom: appleSpacing.xs
+            }}>
+              סכום השקעה
+            </div>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              color: appleColors.text.primary
+            }}>
+              {recommendation.amount_ils}
+            </div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '14px',
+              color: appleColors.text.secondary,
+              marginBottom: appleSpacing.xs
+            }}>
+              אחוז תיק
+            </div>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              color: appleColors.text.primary
+            }}>
+              {recommendation.percentage_of_portfolio}
+            </div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '14px',
+              color: appleColors.text.secondary,
+              marginBottom: appleSpacing.xs
+            }}>
+              סטופ לוס
+            </div>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              color: appleColors.text.primary
+            }}>
+              {recommendation.stop_loss}
+            </div>
+          </div>
+        </div>
+
+        {/* Reason */}
+        <div style={{
+          marginBottom: appleSpacing.xl,
+          backgroundColor: appleColors.background.primary,
+          padding: appleSpacing.lg,
+          borderRadius: appleBorderRadius.lg,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h5 style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            marginBottom: appleSpacing.md,
+            color: appleColors.text.primary
+          }}>
+            📋 סיבה להמלצה
+          </h5>
+          <div style={{
+            padding: appleSpacing.md,
+            backgroundColor: '#E8F5E8',
+            borderRadius: appleBorderRadius.md,
+            border: `1px solid #C8E6C9`,
+            fontSize: '16px',
+            lineHeight: 1.6
           }}>
             {recommendation.reason}
-          </p>
+          </div>
         </div>
 
         {/* Catalyst */}
         <div style={{
-          backgroundColor: theme.colors.background.primary,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing[6],
-          boxShadow: theme.shadows.sm
+          marginBottom: appleSpacing.xl,
+          backgroundColor: appleColors.background.primary,
+          padding: appleSpacing.lg,
+          borderRadius: appleBorderRadius.lg,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
-          <h4 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[4],
-            color: theme.colors.text.primary
+          <h5 style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            marginBottom: appleSpacing.md,
+            color: appleColors.text.primary
           }}>
-            ⚡ זרז/אירוע
-          </h4>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            lineHeight: theme.typography.lineHeight.relaxed,
-            color: theme.colors.text.primary,
-            margin: 0
+            🚀 קטליזטור
+          </h5>
+          <div style={{
+            padding: appleSpacing.md,
+            backgroundColor: '#FFF8E8',
+            borderRadius: appleBorderRadius.md,
+            border: `1px solid #FFE0B2`,
+            fontSize: '16px',
+            lineHeight: 1.6
           }}>
             {recommendation.catalyst}
-          </p>
+          </div>
         </div>
 
         {/* Risks */}
         <div style={{
-          backgroundColor: theme.colors.danger[50],
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing[6],
-          boxShadow: theme.shadows.sm,
-          border: `1px solid ${theme.colors.danger[200]}`
+          marginBottom: appleSpacing.xl,
+          backgroundColor: appleColors.background.primary,
+          padding: appleSpacing.lg,
+          borderRadius: appleBorderRadius.lg,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
-          <h4 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[4],
-            color: theme.colors.danger[700]
+          <h5 style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            marginBottom: appleSpacing.md,
+            color: appleColors.text.primary
           }}>
             ⚠️ סיכונים
-          </h4>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            lineHeight: theme.typography.lineHeight.relaxed,
-            color: theme.colors.danger[700],
-            margin: 0
+          </h5>
+          <div style={{
+            padding: appleSpacing.md,
+            backgroundColor: '#FFE8E8',
+            borderRadius: appleBorderRadius.md,
+            border: `1px solid #FFCDD2`,
+            fontSize: '16px',
+            lineHeight: 1.6
           }}>
             {recommendation.risks}
-          </p>
+          </div>
         </div>
 
         {/* Why Despite Risks */}
         <div style={{
-          backgroundColor: theme.colors.success[50],
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing[6],
-          boxShadow: theme.shadows.sm,
-          border: `1px solid ${theme.colors.success[200]}`
+          backgroundColor: appleColors.background.primary,
+          padding: appleSpacing.lg,
+          borderRadius: appleBorderRadius.lg,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
-          <h4 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[4],
-            color: theme.colors.success[700]
+          <h5 style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            marginBottom: appleSpacing.md,
+            color: appleColors.text.primary
           }}>
             ✅ למה בכל זאת
-          </h4>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            lineHeight: theme.typography.lineHeight.relaxed,
-            color: theme.colors.success[700],
-            margin: 0
+          </h5>
+          <div style={{
+            padding: appleSpacing.md,
+            backgroundColor: '#E8F5E8',
+            borderRadius: appleBorderRadius.md,
+            border: `1px solid #C8E6C9`,
+            fontSize: '16px',
+            lineHeight: 1.6
           }}>
             {recommendation.why_despite_risks}
-          </p>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Alert Popup */}
+      <AlertPopup
+        isOpen={alert.isOpen}
+        onClose={hideAlert}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+      />
+
+      {/* Confirm Chat Popup */}
+      <ConfirmPopup
+        isOpen={showConfirmChat}
+        onClose={() => setShowConfirmChat(false)}
+        onConfirm={handleConfirmChat}
+        title="פתיחת ChatGPT"
+        message={`האם ברצונך לפתוח ChatGPT עם הקונטקסט של המלצת ההשקעה עבור ${recommendation.symbol}?
+
+הקונטקסט יכלול:
+• פרטי ההמלצה המלאים
+• סיבות וקטליזטורים
+• סיכונים ומידע נוסף
+• שאלות מנחות לדיון
+
+הקונטקסט יועתק ללוח ו-ChatGPT ייפתח בחלון חדש.`}
+        confirmText="פתח ChatGPT"
+        cancelText="ביטול"
+        type="info"
+      />
+    </>
   );
 }; 
